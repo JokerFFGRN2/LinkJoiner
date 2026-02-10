@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    const config = { bg: '#000', card: '#111', green: '#2ed573', red: '#ff4757', text: '#fff', yellow: '#f1c40f', purple: '#9b59b6', gray: '#222' };
+    const config = { bg: '#000', card: '#111', green: '#2ed573', red: '#ff4757', blue: '#3498db', text: '#fff', yellow: '#f1c40f', purple: '#9b59b6', gray: '#222' };
     const seenCodes = new Set();
     let currentFilter = 'recent';
 
@@ -70,8 +70,11 @@
                     <label style="font-size: 9px; color: ${config.red}; cursor: pointer; display: flex; align-items: center; gap: 3px;"><input type="radio" name="rate-${code}" value="shit" style="margin:0; width:10px; height:10px;"> Shit</label>
                 </div>
             </div>
-            <button class="j-btn" style="width: 100%; background: ${config.green}; color: #000; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; margin-top: 5px;">JOIN SERVER</button>
-            <div class="timer" style="display:none; text-align:center; font-size: 10px; color: #555; margin-top: 5px;">Joined <span class="sec">0</span>s ago</div>
+            <div class="timer" style="display:none; text-align:center; font-size: 10px; color: #555; margin-bottom: 5px;">Joined <span class="sec">0</span>s ago</div>
+            <div style="display: flex; gap: 5px;">
+                <button class="j-btn" style="flex: 1; background: ${config.green}; color: #000; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px;">JOIN SERVER</button>
+                <button class="rj-btn" style="display: none; flex: 1; background: ${config.blue}; color: #fff; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px;">REJOIN</button>
+            </div>
         `;
 
         card.querySelectorAll('input').forEach(radio => {
@@ -79,12 +82,19 @@
         });
 
         const btn = card.querySelector('.j-btn');
+        const rjBtn = card.querySelector('.rj-btn');
+
         btn.onclick = () => {
             window.open(url, '_blank');
             btn.style.background = config.red; btn.style.color = '#fff'; btn.innerText = "JOINED"; btn.disabled = true;
+            rjBtn.style.display = "block"; // إظهار زر Rejoin
             card.style.borderLeftColor = config.red;
             const t = card.querySelector('.timer'); t.style.display = "block";
             let s = 0; setInterval(() => { s++; card.querySelector('.sec').innerText = s; }, 1000);
+        };
+
+        rjBtn.onclick = () => {
+            window.open(url, '_blank');
         };
 
         const list = document.getElementById("flj-list");
