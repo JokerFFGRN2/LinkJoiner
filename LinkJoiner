@@ -162,7 +162,6 @@
             this.disabled = true; 
             this.style.cursor = "default";
             
-            // تغيير لون الشريط الجانبي للأحمر
             if (currentMethod === 1) {
                 card.style.borderLeftColor = config.red;
             } else {
@@ -203,3 +202,8 @@
     document.onmousemove = (e) => { if(d) { ui.style.right = (ox - e.clientX) + 'px'; ui.style.top = (e.clientY + oy) + 'px'; ui.style.left = 'auto'; } };
     document.onmouseup = () => d = false;
 })();
+
+
+
+// version 2.3
+// made by zayd
