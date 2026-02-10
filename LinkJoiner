@@ -5,7 +5,7 @@
     let seenCodes = new Set();
     let hiddenUsers = new Set(); 
     let currentFilter = 'recent';
-    let currentMethod = 1;
+    let currentMethod = 'Advanced';
     let cardCounter = 0;
     let currentScale = localStorage.getItem('flj_scale') || 1;
 
@@ -29,7 +29,7 @@
         <div id="flj-settings-panel" style="display:none; background:#0a0a0a; padding:12px; border-bottom:1px solid #222; font-size:11px; flex-direction: column; gap: 10px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span>JOINING METHOD:</span>
-                <button id="method-toggle" style="background:${config.green}; color:#000; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-weight:bold;">Method 1</button>
+                <button id="method-toggle" style="background:${config.green}; color:#000; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-weight:bold;">${currentMethod}</button>
             </div>
             <div style="display:flex; flex-direction:column; gap:5px;">
                 <div style="display:flex; justify-content:space-between;">
@@ -90,9 +90,9 @@
     };
 
     methodBtn.onclick = () => {
-        currentMethod = currentMethod === 1 ? 2 : 1;
-        methodBtn.innerText = `Method ${currentMethod}`;
-        if (currentMethod === 2) {
+        currentMethod = currentMethod === 'Advanced' ? 'Simple' : 'Advanced';
+        methodBtn.innerText = currentMethod;
+        if (currentMethod === 'Simple') {
             list.style.display = "grid"; list.style.gridTemplateColumns = "repeat(4, 1fr)";
             document.getElementById("flj-filter-bar").style.display = "none";
         } else {
@@ -103,7 +103,7 @@
     };
 
     function applyFilter() {
-        if (currentMethod === 2) return;
+        if (currentMethod === 'Simple') return;
         document.querySelectorAll('.link-card').forEach(card => {
             if (currentFilter === 'recent') { card.style.display = 'block'; } 
             else {
@@ -121,7 +121,7 @@
         card.className = "link-card";
         card.dataset.author = name;
         
-        if (currentMethod === 1) {
+        if (currentMethod === 'Advanced') {
             card.style.cssText = `background: ${config.card}; border: 1px solid #1a1a1a; padding: 12px; border-radius: 10px; border-left: 4px solid ${config.green}; transition: border-left 0.3s;`;
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
@@ -158,18 +158,18 @@
             window.open(url, '_blank');
             this.style.background = config.red; 
             this.style.color = '#fff'; 
-            this.innerText = currentMethod === 1 ? "JOINED" : "✔";
+            this.innerText = currentMethod === 'Advanced' ? "JOINED" : "✔";
             this.disabled = true; 
             this.style.cursor = "default";
             
-            if (currentMethod === 1) {
+            if (currentMethod === 'Advanced') {
                 card.style.borderLeftColor = config.red;
             } else {
                 card.querySelector('div').style.borderLeft = `3px solid ${config.red}`;
             }
 
             rjBtn.style.display = "block"; 
-            if(currentMethod === 2) this.style.height = "50%";
+            if(currentMethod === 'Simple') this.style.height = "50%";
         };
 
         rjBtn.onclick = () => window.open(url, '_blank');
@@ -205,5 +205,6 @@
 
 
 
-// version 2.3
+
+// version 2.4
 // made by zayd
