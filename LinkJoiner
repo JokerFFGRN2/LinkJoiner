@@ -3,43 +3,52 @@
 
     const config = { bg: '#000', card: '#111', green: '#2ed573', red: '#ff4757', blue: '#3498db', text: '#fff', yellow: '#f1c40f', purple: '#9b59b6', gray: '#222' };
     let seenCodes = new Set();
+    let hiddenUsers = new Set(); 
     let currentFilter = 'recent';
     let currentMethod = 1;
     let cardCounter = 0;
+    let currentScale = localStorage.getItem('flj_scale') || 1;
 
     const old = document.getElementById("flj-v11");
     if (old) old.remove();
 
     const ui = document.createElement("div");
     ui.id = "flj-v11";
-    ui.style.cssText = `position: fixed; top: 20px; right: 20px; width: 330px; height: 520px; background: ${config.bg}; border: 1px solid #222; z-index: 1000000; font-family: sans-serif; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 0 30px #000; overflow: hidden; color: white;`;
+    ui.style.cssText = `position: fixed; top: 20px; right: 20px; width: 330px; height: 520px; background: ${config.bg}; border: 1px solid #222; z-index: 1000000; font-family: sans-serif; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 0 30px #000; overflow: hidden; color: white; transform: scale(${currentScale}); transform-origin: top right;`;
     
     ui.innerHTML = `
         <div id="flj-drag" style="background: #000; padding: 12px; cursor: move; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center;">
             <div style="display:flex; align-items:center; gap:12px;">
                 <button id="flj-settings-btn" style="background:none; border:none; color:#fff; cursor:pointer; font-size:14px; padding:0;">⚙️</button>
-                <button id="flj-refresh-btn" title="Refresh Links" style="background:none; border:none; color:#fff; cursor:pointer; font-size:14px; padding:0;">🔄</button>
-                <span style="font-weight: bold; font-size: 14px;">⚡ Link Joiner</span>
+                <button id="flj-refresh-btn" title="Refresh Links" style="background:none; border:none; color:#fff; cursor:pointer; font-size:16px; padding:0;">🔄</button>
+                <span style="font-weight: bold; font-size: 14px; user-select:none;">⚡ Link Joiner</span>
             </div>
             <button id="flj-close" style="background:none; border:none; color:#fff; cursor:pointer; font-size:18px;">✕</button>
         </div>
 
-        <div id="flj-settings-panel" style="display:none; background:#0a0a0a; padding:10px; border-bottom:1px solid #222; font-size:11px;">
+        <div id="flj-settings-panel" style="display:none; background:#0a0a0a; padding:12px; border-bottom:1px solid #222; font-size:11px; flex-direction: column; gap: 10px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span>JOINING METHOD:</span>
                 <button id="method-toggle" style="background:${config.green}; color:#000; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-weight:bold;">Method 1</button>
             </div>
+            <div style="display:flex; flex-direction:column; gap:5px;">
+                <div style="display:flex; justify-content:space-between;">
+                    <span>UI SIZE:</span>
+                    <span id="scale-val">${Math.round(currentScale * 100)}%</span>
+                </div>
+                <input type="range" id="ui-scale-slider" min="0.5" max="1.5" step="0.05" value="${currentScale}" style="width:100%; cursor:pointer; accent-color:${config.green};">
+            </div>
         </div>
 
         <div id="flj-filter-bar" style="padding: 8px; background: #080808; border-bottom: 1px solid #222; display: flex; gap: 5px; flex-wrap: wrap; font-size: 10px;">
-            <span style="width: 100%; margin-bottom: 4px; color: #666;">FILTER BY:</span>
-            <button class="sort-btn active" data-sort="recent" style="background:${config.green}; color:#000; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:bold;">Recently</button>
-            <button class="sort-btn" data-sort="stacked" style="background:#222; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Stacked</button>
-            <button class="sort-btn" data-sort="mid" style="background:#222; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Mid</button>
-            <button class="sort-btn" data-sort="shit" style="background:#222; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Shit</button>
+            <span style="width: 100%; margin-bottom: 4px; color: #666; font-weight:bold;">FILTER BY:</span>
+            <button class="sort-btn active" data-sort="recent" style="background:${config.green}; color:#000; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold;">Recently</button>
+            <button class="sort-btn" data-sort="stacked" style="background:#222; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;">Stacked</button>
+            <button class="sort-btn" data-sort="mid" style="background:#222; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;">Mid</button>
+            <button class="sort-btn" data-sort="shit" style="background:#222; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;">Shit</button>
         </div>
 
-        <div id="flj-list" style="padding: 10px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; align-content: flex-start;">
+        <div id="flj-list" style="padding: 10px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px;">
             <div id="flj-empty" style="color: #444; text-align: center; margin-top: 150px; font-size: 11px;">Waiting for links...</div>
         </div>
 
@@ -51,128 +60,20 @@
 
     const list = document.getElementById("flj-list");
     const methodBtn = document.getElementById("method-toggle");
-    const filterBar = document.getElementById("flj-filter-bar");
+    const settingsPanel = document.getElementById("flj-settings-panel");
+    const scaleSlider = document.getElementById("ui-scale-slider");
+    const scaleValText = document.getElementById("scale-val");
 
-    // وظيفة الـ Refresh
-    document.getElementById("flj-refresh-btn").onclick = () => {
-        list.innerHTML = '<div id="flj-empty" style="color: #444; text-align: center; margin-top: 150px; font-size: 11px;">Refreshing...</div>';
-        seenCodes.clear();
-        cardCounter = 0;
+    scaleSlider.oninput = (e) => {
+        let val = e.target.value;
+        ui.style.transform = `scale(${val})`;
+        scaleValText.innerText = `${Math.round(val * 100)}%`;
+        localStorage.setItem('flj_scale', val);
     };
 
     document.getElementById("flj-settings-btn").onclick = () => {
-        const p = document.getElementById("flj-settings-panel");
-        p.style.display = p.style.display === "none" ? "block" : "none";
+        settingsPanel.style.display = settingsPanel.style.display === "none" ? "flex" : "none";
     };
-
-    methodBtn.onclick = () => {
-        currentMethod = currentMethod === 1 ? 2 : 1;
-        methodBtn.innerText = `Method ${currentMethod}`;
-        
-        if (currentMethod === 2) {
-            list.style.display = "grid";
-            list.style.gridTemplateColumns = "repeat(4, 1fr)";
-            list.style.gridAutoRows = "min-content";
-            list.style.gap = "10px";
-            filterBar.style.display = "none";
-        } else {
-            list.style.display = "flex";
-            list.style.flexDirection = "column";
-            list.style.gap = "10px";
-            filterBar.style.display = "flex";
-        }
-        list.innerHTML = '<div id="flj-empty" style="color: #444; text-align: center; margin-top: 150px; font-size: 11px;">Method Switched.</div>';
-        seenCodes.clear(); 
-        cardCounter = 0;
-    };
-
-    function createCard(code, name, url) {
-        if (document.getElementById(`c-${code}`)) return;
-        cardCounter++;
-        const card = document.createElement("div");
-        card.className = "link-card";
-        card.id = `c-${code}`;
-        
-        if (currentMethod === 1) {
-            card.style.cssText = `background: ${config.card}; border: 1px solid #1a1a1a; padding: 12px; border-radius: 10px; border-left: 4px solid ${config.green};`;
-            card.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                    <span style="font-size: 13px; font-weight: bold; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">👤 ${name}</span>
-                    <div style="background: ${config.gray}; padding: 4px 6px; border-radius: 6px; display: flex; flex-direction: column; gap: 3px; align-items: flex-start;">
-                        <label style="font-size: 9px; color: ${config.purple}; cursor: pointer; display: flex; align-items: center; gap: 3px;"><input type="radio" name="rate-${code}" value="stacked" style="margin:0; width:10px; height:10px;"> Stacked</label>
-                        <label style="font-size: 9px; color: ${config.yellow}; cursor: pointer; display: flex; align-items: center; gap: 3px;"><input type="radio" name="rate-${code}" value="mid" style="margin:0; width:10px; height:10px;"> Mid</label>
-                        <label style="font-size: 9px; color: ${config.red}; cursor: pointer; display: flex; align-items: center; gap: 3px;"><input type="radio" name="rate-${code}" value="shit" style="margin:0; width:10px; height:10px;"> Shit</label>
-                    </div>
-                </div>
-                <div class="timer" style="display:none; text-align:center; font-size: 10px; color: #555; margin-bottom: 5px;">Joined <span class="sec">0</span>s ago</div>
-                <div style="display: flex; gap: 5px;">
-                    <button class="j-btn" style="flex: 1; background: ${config.green}; color: #000; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px;">JOIN SERVER</button>
-                    <button class="rj-btn" style="display: none; flex: 1; background: ${config.blue}; color: #fff; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px;">REJOIN</button>
-                </div>
-            `;
-        } else {
-            card.style.cssText = `display: flex; flex-direction: column; align-items: center; gap: 4px;`;
-            card.innerHTML = `
-                <span style="font-size: 10px; color: ${config.green}; font-weight: bold;">${cardCounter}</span>
-                <div style="background: ${config.card}; border: 1px solid #222; width: 60px; height: 60px; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;">
-                    <button class="j-btn" style="width: 100%; height: 100%; background: ${config.green}; color: #000; border: none; cursor: pointer; font-weight: bold; font-size: 10px;">JOIN</button>
-                    <button class="rj-btn" style="display: none; width: 100%; height: 50%; background: ${config.blue}; color: #fff; border: none; cursor: pointer; font-weight: bold; font-size: 9px;">REJOIN</button>
-                </div>
-            `;
-        }
-
-        const btn = card.querySelector('.j-btn');
-        const rjBtn = card.querySelector('.rj-btn');
-
-        btn.onclick = () => {
-            window.open(url, '_blank');
-            btn.style.background = config.red; btn.style.color = '#fff'; 
-            btn.innerText = currentMethod === 1 ? "JOINED" : "✔";
-            btn.disabled = true; rjBtn.style.display = "block";
-            if(currentMethod === 1) {
-                card.style.borderLeftColor = config.red;
-                const t = card.querySelector('.timer'); t.style.display = "block";
-                let s = 0; setInterval(() => { s++; const sc = card.querySelector('.sec'); if(sc) sc.innerText = s; }, 1000);
-            } else { btn.style.height = "50%"; }
-        };
-
-        rjBtn.onclick = () => window.open(url, '_blank');
-        if(currentMethod === 1) card.querySelectorAll('input').forEach(r => r.onchange = () => { if(currentFilter !== 'recent') applyFilter(); });
-
-        document.getElementById("flj-empty")?.remove();
-        list.prepend(card);
-        if (currentMethod === 1) applyFilter();
-    }
-
-    const scan = setInterval(() => {
-        const regex = /(?:code=|privateServerLinkCode=)([a-zA-Z0-9_-]+)/g;
-        const html = document.body.innerHTML;
-        let m;
-        while ((m = regex.exec(html)) !== null) {
-            const code = m[1];
-            if (!seenCodes.has(code)) {
-                seenCodes.add(code);
-                const isPrivate = html.includes('privateServerLinkCode=' + code);
-                const url = isPrivate ? `https://www.roblox.com/games/refer?privateServerLinkCode=${code}` : `https://www.roblox.com/share?code=${code}&type=Server`;
-                let author = "User";
-                document.querySelectorAll(".forum-post-container, [class*='post'], .comment").forEach(el => {
-                    if (el.innerText.includes(code)) author = el.querySelector("[class*='name'], b, strong")?.innerText.trim() || author;
-                });
-                createCard(code, author.split('\n')[0], url);
-            }
-        }
-    }, 1000);
-
-    function applyFilter() {
-        if (currentMethod === 2) return;
-        document.querySelectorAll('.link-card').forEach(card => {
-            if (currentFilter === 'recent') { card.style.display = 'block'; } 
-            else {
-                const radio = card.querySelector(`input[value="${currentFilter}"]`);
-                if (radio) card.style.display = radio.checked ? 'block' : 'none';
-            }
-        });
-    }
 
     ui.querySelectorAll('.sort-btn').forEach(btn => {
         btn.onclick = () => {
@@ -183,12 +84,118 @@
         };
     });
 
+    document.getElementById("flj-refresh-btn").onclick = () => {
+        list.innerHTML = '<div id="flj-empty" style="color: #444; text-align: center; margin-top: 150px; font-size: 11px;">Refreshing...</div>';
+        seenCodes.clear(); hiddenUsers.clear(); cardCounter = 0;
+    };
+
+    methodBtn.onclick = () => {
+        currentMethod = currentMethod === 1 ? 2 : 1;
+        methodBtn.innerText = `Method ${currentMethod}`;
+        if (currentMethod === 2) {
+            list.style.display = "grid"; list.style.gridTemplateColumns = "repeat(4, 1fr)";
+            document.getElementById("flj-filter-bar").style.display = "none";
+        } else {
+            list.style.display = "flex"; document.getElementById("flj-filter-bar").style.display = "flex";
+        }
+        list.innerHTML = '<div id="flj-empty" style="color: #444; text-align: center; margin-top: 150px; font-size: 11px;">Refreshing...</div>';
+        seenCodes.clear(); cardCounter = 0;
+    };
+
+    function applyFilter() {
+        if (currentMethod === 2) return;
+        document.querySelectorAll('.link-card').forEach(card => {
+            if (currentFilter === 'recent') { card.style.display = 'block'; } 
+            else {
+                const radio = card.querySelector(`input[value="${currentFilter}"]:checked`);
+                card.style.display = radio ? 'block' : 'none';
+            }
+        });
+    }
+
+    function createCard(code, name, url) {
+        if (seenCodes.has(code) || hiddenUsers.has(name)) return;
+        seenCodes.add(code);
+        cardCounter++;
+        const card = document.createElement("div");
+        card.className = "link-card";
+        card.dataset.author = name;
+        
+        if (currentMethod === 1) {
+            card.style.cssText = `background: ${config.card}; border: 1px solid #1a1a1a; padding: 12px; border-radius: 10px; border-left: 4px solid ${config.green};`;
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <span style="font-size: 13px; font-weight: bold;">👤 ${name}</span>
+                        <button class="hide-btn" style="background:#333; color:#ccc; border:none; padding:2px 6px; border-radius:4px; cursor:pointer; font-size:9px; width:fit-content;">HIDE</button>
+                    </div>
+                    <div style="background: ${config.gray}; padding: 4px 6px; border-radius: 6px; display: flex; flex-direction: column; gap: 3px;">
+                        <label style="font-size: 9px; color: ${config.purple}; cursor: pointer;"><input type="radio" name="rate-${code}" value="stacked"> Stacked</label>
+                        <label style="font-size: 9px; color: ${config.yellow}; cursor: pointer;"><input type="radio" name="rate-${code}" value="mid"> Mid</label>
+                        <label style="font-size: 9px; color: ${config.red}; cursor: pointer;"><input type="radio" name="rate-${code}" value="shit"> Shit</label>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    <button class="j-btn" style="flex: 1; background: ${config.green}; color: #000; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px;">JOIN SERVER</button>
+                    <button class="rj-btn" style="display: none; flex: 1; background: ${config.blue}; color: #fff; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px;">REJOIN</button>
+                </div>
+            `;
+            card.querySelector('.hide-btn').onclick = () => { hiddenUsers.add(name); document.querySelectorAll(`.link-card[data-author="${name}"]`).forEach(el => el.remove()); };
+            card.querySelectorAll('input').forEach(r => r.onchange = () => applyFilter());
+        } else {
+            card.style.cssText = `display: flex; flex-direction: column; align-items: center; gap: 4px;`;
+            card.innerHTML = `<span style="font-size: 10px; color:${config.green}; font-weight:bold;">${cardCounter}</span>
+                <div style="background:${config.card}; border:1px solid #222; width:60px; height:60px; border-radius:8px; overflow:hidden; display:flex; flex-direction:column;">
+                    <button class="j-btn" style="width:100%; height:100%; background:${config.green}; color:#000; border:none; cursor:pointer; font-weight:bold; font-size:10px;">JOIN</button>
+                    <button class="rj-btn" style="display:none; width:100%; height:50%; background:${config.blue}; color:#fff; border:none; cursor:pointer; font-weight:bold; font-size:9px;">REJOIN</button>
+                </div>`;
+        }
+
+        const btn = card.querySelector('.j-btn');
+        const rjBtn = card.querySelector('.rj-btn');
+
+        btn.onclick = function() {
+            window.open(url, '_blank');
+            this.style.background = config.red; 
+            this.style.color = '#fff'; 
+            this.innerText = currentMethod === 1 ? "JOINED" : "✔";
+            this.disabled = true; // تعطيل الزر تماماً
+            this.style.cursor = "default";
+            rjBtn.style.display = "block"; // إظهار زر Rejoin
+            if(currentMethod === 2) this.style.height = "50%";
+        };
+
+        rjBtn.onclick = () => window.open(url, '_blank');
+
+        document.getElementById("flj-empty")?.remove();
+        list.prepend(card);
+    }
+
+    const scan = setInterval(() => {
+        const regex = /(?:code=|privateServerLinkCode=)([a-zA-Z0-9_-]+)/g;
+        const html = document.body.innerHTML;
+        let m;
+        while ((m = regex.exec(html)) !== null) {
+            const code = m[1];
+            if (!seenCodes.has(code)) {
+                let author = "User";
+                document.querySelectorAll(".forum-post-container, [class*='post'], .comment").forEach(el => {
+                    if (el.innerText.includes(code)) author = el.querySelector("[class*='name'], b, strong")?.innerText.trim() || author;
+                });
+                const isPrivate = html.includes('privateServerLinkCode=' + code);
+                const url = isPrivate ? `https://www.roblox.com/games/refer?privateServerLinkCode=${code}` : `https://www.roblox.com/share?code=${code}&type=Server`;
+                createCard(code, author.split('\n')[0], url);
+            }
+        }
+    }, 1000);
+
     document.getElementById("flj-close").onclick = () => { clearInterval(scan); ui.remove(); };
     let d = false, ox, oy;
-    document.getElementById("flj-drag").onmousedown = (e) => { if(e.target.tagName === "BUTTON") return; d = true; ox = (window.innerWidth - ui.offsetLeft - ui.offsetWidth) + e.clientX; oy = ui.offsetTop - e.clientY; };
+    document.getElementById("flj-drag").onmousedown = (e) => { if(e.target.tagName === "BUTTON" || e.target.tagName === "INPUT") return; d = true; ox = (window.innerWidth - ui.offsetLeft - ui.offsetWidth) + e.clientX; oy = ui.offsetTop - e.clientY; };
     document.onmousemove = (e) => { if(d) { ui.style.right = (ox - e.clientX) + 'px'; ui.style.top = (e.clientY + oy) + 'px'; ui.style.left = 'auto'; } };
     document.onmouseup = () => d = false;
 })();
 
-// version 1.6
+
+// version 2.1
 // made by zayd
