@@ -1,119 +1,120 @@
 (function() {
     'use strict';
 
-    const config = {
-        bg: '#000000',
-        card: '#111111',
-        green: '#2ed573',
-        red: '#ff4757',
-        text: '#ffffff'
-    };
-
+    const config = { bg: '#000', card: '#111', green: '#2ed573', red: '#ff4757', text: '#fff', yellow: '#f1c40f', purple: '#9b59b6', gray: '#222' };
     const seenCodes = new Set();
+    let currentFilter = 'recent';
 
-    const oldUI = document.getElementById("flj-final-v8");
-    if (oldUI) oldUI.remove();
+    const old = document.getElementById("flj-v11");
+    if (old) old.remove();
 
     const ui = document.createElement("div");
-    ui.id = "flj-final-v8";
-    ui.style.cssText = `
-        position: fixed !important; top: 20px !important; right: 20px !important;
-        width: 310px !important; height: 430px !important;
-        background: ${config.bg} !important; border: 1px solid #111 !important;
-        z-index: 1000000 !important; font-family: sans-serif !important;
-        border-radius: 12px !important; display: flex !important; flex-direction: column !important;
-        box-shadow: 0 0 30px rgba(0,0,0,1) !important; overflow: hidden !important;
-    `;
+    ui.id = "flj-v11";
+    ui.style.cssText = `position: fixed; top: 20px; right: 20px; width: 330px; height: 520px; background: ${config.bg}; border: 1px solid #222; z-index: 1000000; font-family: sans-serif; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 0 30px #000; overflow: hidden; color: white;`;
     
     ui.innerHTML = `
-        <div id="flj-drag" style="background: #000 !important; color: #fff !important; padding: 12px 15px !important; font-weight: bold !important; cursor: move !important; display: flex !important; justify-content: space-between !important; align-items: center !important; border-bottom: 1px solid #222 !important;">
-            <span style="font-size: 14px !important;">⚡ Link Joiner</span>
-            <button id="flj-close" style="border:none !important; background:none !important; cursor:pointer !important; font-size: 20px !important; color: #fff !important;">✕</button>
+        <div id="flj-drag" style="background: #000; padding: 12px; cursor: move; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: bold; font-size: 14px;">⚡ Link Joiner</span>
+            <button id="flj-close" style="background:none; border:none; color:#fff; cursor:pointer; font-size:18px;">✕</button>
         </div>
-        <div id="flj-list" style="padding: 10px !important; overflow-y: auto !important; flex: 1 !important; background: ${config.bg} !important;">
-            <div id="flj-empty" style="color: #444 !important; text-align: center !important; margin-top: 160px !important; font-size: 11px !important;">Waiting for links...</div>
+        <div style="padding: 8px; background: #080808; border-bottom: 1px solid #222; display: flex; gap: 5px; flex-wrap: wrap; font-size: 10px;">
+            <span style="width: 100%; margin-bottom: 4px; color: #666;">FILTER BY:</span>
+            <button class="sort-btn active" data-sort="recent" style="background:${config.green}; color:#000; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:bold;">Recently</button>
+            <button class="sort-btn" data-sort="stacked" style="background:#222; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Stacked</button>
+            <button class="sort-btn" data-sort="mid" style="background:#222; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Mid</button>
+            <button class="sort-btn" data-sort="shit" style="background:#222; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Shit</button>
+        </div>
+        <div id="flj-list" style="padding: 10px; overflow-y: auto; flex: 1;">
+            <div id="flj-empty" style="color: #444; text-align: center; margin-top: 150px; font-size: 11px;">Waiting for links...</div>
+        </div>
+        <div style="padding: 5px; text-align: center; background: #050505; border-top: 1px solid #222; font-size: 10px; color: #444; letter-spacing: 1px;">
+            MADE BY <span style="color: ${config.green}; font-weight: bold;">ZAYD</span>
         </div>
     `;
     document.body.appendChild(ui);
 
-    function createCard(code, name, url) {
-        if (document.getElementById(`c-${code}`)) return null;
+    function applyFilter() {
+        const cards = document.querySelectorAll('.link-card');
+        cards.forEach(card => {
+            if (currentFilter === 'recent') {
+                card.style.display = 'block';
+            } else {
+                const isSelected = card.querySelector(`input[value="${currentFilter}"]`).checked;
+                card.style.display = isSelected ? 'block' : 'none';
+            }
+        });
+    }
 
+    ui.querySelectorAll('.sort-btn').forEach(btn => {
+        btn.onclick = () => {
+            ui.querySelectorAll('.sort-btn').forEach(b => { b.style.background = "#222"; b.style.color = "#fff"; });
+            btn.style.background = config.green; btn.style.color = "#000";
+            currentFilter = btn.dataset.sort;
+            applyFilter();
+        };
+    });
+
+    function createCard(code, name, url) {
+        if (document.getElementById(`c-${code}`)) return;
         const card = document.createElement("div");
+        card.className = "link-card";
         card.id = `c-${code}`;
-        card.style.cssText = `
-            background: ${config.card} !important; border: 1px solid #1a1a1a !important;
-            padding: 12px !important; border-radius: 10px !important;
-            margin-bottom: 10px !important; border-left: 4px solid ${config.green} !important;
-        `;
+        card.style.cssText = `background: ${config.card}; border: 1px solid #1a1a1a; padding: 12px; border-radius: 10px; margin-bottom: 10px; border-left: 4px solid ${config.green};`;
         
         card.innerHTML = `
-            <div style="display: flex !important; justify-content: space-between !important; align-items: center !important; margin-bottom: 10px !important;">
-                <span style="font-size: 13px !important; font-weight: bold !important; color: ${config.text} !important; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">👤 ${name}</span>
-                <span class="badge-new" style="font-size: 9px !important; color: ${config.green} !important; font-weight: bold !important;">NEW</span>
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                <span style="font-size: 13px; font-weight: bold; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">👤 ${name}</span>
+                <div style="background: ${config.gray}; padding: 4px 6px; border-radius: 6px; display: flex; flex-direction: column; gap: 3px; align-items: flex-start;">
+                    <label style="font-size: 9px; color: ${config.purple}; cursor: pointer; display: flex; align-items: center; gap: 3px;"><input type="radio" name="rate-${code}" value="stacked" style="margin:0; width:10px; height:10px;"> Stacked</label>
+                    <label style="font-size: 9px; color: ${config.yellow}; cursor: pointer; display: flex; align-items: center; gap: 3px;"><input type="radio" name="rate-${code}" value="mid" style="margin:0; width:10px; height:10px;"> Mid</label>
+                    <label style="font-size: 9px; color: ${config.red}; cursor: pointer; display: flex; align-items: center; gap: 3px;"><input type="radio" name="rate-${code}" value="shit" style="margin:0; width:10px; height:10px;"> Shit</label>
+                </div>
             </div>
-            <button class="j-btn" style="width: 100% !important; background: ${config.green} !important; color: #000 !important; border: none !important; padding: 10px !important; border-radius: 6px !important; cursor: pointer !important; font-weight: bold !important; font-size: 12px !important;">JOIN SERVER</button>
-            <div class="timer" style="display:none; text-align:center; font-size: 11px; color: #666; margin-top: 8px;">Recently Joined: <span class="sec">0</span>s ago</div>
+            <button class="j-btn" style="width: 100%; background: ${config.green}; color: #000; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; margin-top: 5px;">JOIN SERVER</button>
+            <div class="timer" style="display:none; text-align:center; font-size: 10px; color: #555; margin-top: 5px;">Joined <span class="sec">0</span>s ago</div>
         `;
 
-        const btn = card.querySelector('.j-btn');
-        const badge = card.querySelector('.badge-new');
+        card.querySelectorAll('input').forEach(radio => {
+            radio.onchange = () => { if(currentFilter !== 'recent') applyFilter(); };
+        });
 
+        const btn = card.querySelector('.j-btn');
         btn.onclick = () => {
             window.open(url, '_blank');
-            card.style.setProperty('border-left-color', config.red, 'important');
-            btn.style.setProperty('background', config.red, 'important');
-            btn.style.setProperty('color', '#fff', 'important');
-            btn.innerText = "JOINED";
-            btn.disabled = true;
-            if (badge) badge.style.display = "none"; 
-            const tDiv = card.querySelector('.timer');
-            const sSpan = card.querySelector('.sec');
-            tDiv.style.display = "block";
-            let s = 0;
-            setInterval(() => { s++; sSpan.innerText = s; }, 1000);
+            btn.style.background = config.red; btn.style.color = '#fff'; btn.innerText = "JOINED"; btn.disabled = true;
+            card.style.borderLeftColor = config.red;
+            const t = card.querySelector('.timer'); t.style.display = "block";
+            let s = 0; setInterval(() => { s++; card.querySelector('.sec').innerText = s; }, 1000);
         };
 
-        return card;
+        const list = document.getElementById("flj-list");
+        document.getElementById("flj-empty")?.remove();
+        list.prepend(card);
+        applyFilter();
     }
 
     const scan = setInterval(() => {
         const regex = /(?:code=|privateServerLinkCode=)([a-zA-Z0-9_-]+)/g;
         const html = document.body.innerHTML;
         let m;
-        
         while ((m = regex.exec(html)) !== null) {
             const code = m[1];
             if (!seenCodes.has(code)) {
                 seenCodes.add(code);
-                
                 const isPrivate = html.includes('privateServerLinkCode=' + code);
-                // هنا التعديل: إضافة &type=Server للرابط العادي
-                const url = isPrivate 
-                    ? `https://www.roblox.com/games/refer?privateServerLinkCode=${code}` 
-                    : `https://www.roblox.com/share?code=${code}&type=Server`;
-
+                const url = isPrivate ? `https://www.roblox.com/games/refer?privateServerLinkCode=${code}` : `https://www.roblox.com/share?code=${code}&type=Server`;
                 let author = "User";
-                document.querySelectorAll(".forum-post-container, [class*='post'], .comment, .text-label").forEach(el => {
-                    if (el.innerText.includes(code)) {
-                        author = el.querySelector("[class*='name'], b, strong, .author")?.innerText.trim() || author;
-                    }
+                document.querySelectorAll(".forum-post-container, [class*='post'], .comment").forEach(el => {
+                    if (el.innerText.includes(code)) author = el.querySelector("[class*='name'], b, strong")?.innerText.trim() || author;
                 });
-
-                const list = document.getElementById("flj-list");
-                const newCard = createCard(code, author, url);
-                if (newCard) {
-                    document.getElementById("flj-empty")?.remove();
-                    list.prepend(newCard);
-                }
+                createCard(code, author.split('\n')[0], url);
             }
         }
     }, 1000);
 
     document.getElementById("flj-close").onclick = () => { clearInterval(scan); ui.remove(); };
-    let drag = false, ox, oy;
-    document.getElementById("flj-drag").onmousedown = (e) => { drag = true; ox = (window.innerWidth - ui.offsetLeft - ui.offsetWidth) + e.clientX; oy = ui.offsetTop - e.clientY; };
-    document.onmousemove = (e) => { if(drag) { ui.style.right = (ox - e.clientX) + 'px'; ui.style.top = (e.clientY + oy) + 'px'; ui.style.left = 'auto'; } };
-    document.onmouseup = () => drag = false;
-
+    let d = false, ox, oy;
+    document.getElementById("flj-drag").onmousedown = (e) => { d = true; ox = (window.innerWidth - ui.offsetLeft - ui.offsetWidth) + e.clientX; oy = ui.offsetTop - e.clientY; };
+    document.onmousemove = (e) => { if(d) { ui.style.right = (ox - e.clientX) + 'px'; ui.style.top = (e.clientY + oy) + 'px'; ui.style.left = 'auto'; } };
+    document.onmouseup = () => d = false;
 })();
