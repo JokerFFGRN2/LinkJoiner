@@ -3,6 +3,7 @@
 
     const config = { bg: '#000', card: '#111', green: '#2ed573', red: '#ff4757', blue: '#3498db', text: '#fff', yellow: '#f1c40f', purple: '#9b59b6', gray: '#222' };
     let seenCodes = new Set();
+    let joinedCodes = new Set();
     let hiddenUsers = new Set(); 
     let currentFilter = 'recent';
     let currentMethod = 'Advanced';
@@ -14,51 +15,67 @@
 
     const ui = document.createElement("div");
     ui.id = "flj-v11";
-    ui.style.cssText = `position: fixed; top: 20px; right: 20px; width: 330px; height: 520px; background: ${config.bg}; border: 1px solid #222; z-index: 1000000; font-family: sans-serif; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 0 30px #000; overflow: hidden; color: white; transform: scale(${currentScale}); transform-origin: top right;`;
+    ui.style.cssText = `position: fixed; top: 20px; right: 20px; width: 300px; height: 480px; background: ${config.bg}; border: 1px solid #222; z-index: 1000000; font-family: sans-serif; border-radius: 10px; display: flex; flex-direction: column; box-shadow: 0 0 20px #000; overflow: hidden; color: white; transform: scale(${currentScale}); transform-origin: top right;`;
     
     ui.innerHTML = `
-        <div id="flj-drag" style="background: #000; padding: 12px; cursor: move; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center;">
-            <div style="display:flex; align-items:center; gap:12px;">
-                <button id="flj-settings-btn" style="background:none; border:none; color:#fff; cursor:pointer; font-size:14px; padding:0;">⚙️</button>
-                <button id="flj-refresh-btn" title="Refresh Links" style="background:none; border:none; color:#fff; cursor:pointer; font-size:16px; padding:0;">🔄</button>
-                <span style="font-weight: bold; font-size: 14px; user-select:none;">⚡ Link Joiner</span>
+        <div id="flj-drag" style="background: #000; padding: 8px 12px; cursor: move; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display:flex; align-items:center; gap:6px;">
+                <button id="flj-settings-btn" style="background:none; border:none; color:#fff; cursor:pointer; font-size:12px; padding:0;">⚙️</button>
+                <button id="flj-refresh-btn" title="Refresh" style="background:none; border:none; color:#fff; cursor:pointer; font-size:14px; padding:0;">🔄</button>
+                <span style="font-weight: bold; font-size: 12px; user-select:none; margin-left:4px;">⚡ Link Joiner</span>
             </div>
-            <button id="flj-close" style="background:none; border:none; color:#fff; cursor:pointer; font-size:18px;">✕</button>
+            <div style="display:flex; align-items:center; gap:4px;">
+                <button id="join-recent" style="background:${config.green}; color:#000; border:none; padding:3px 6px; border-radius:4px; cursor:pointer; font-size:9px; font-weight:bold;">RECENT</button>
+                <button id="join-random" style="background:${config.purple}; color:#fff; border:none; padding:3px 6px; border-radius:4px; cursor:pointer; font-size:9px; font-weight:bold;">RANDOM</button>
+                <button id="flj-close" style="background:none; border:none; color:#fff; cursor:pointer; font-size:16px; margin-left:2px;">✕</button>
+            </div>
         </div>
 
-        <div id="flj-settings-panel" style="display:none; background:#0a0a0a; padding:12px; border-bottom:1px solid #222; font-size:11px; flex-direction: column; gap: 10px;">
+        <div id="flj-settings-panel" style="display:none; background:#0a0a0a; padding:10px; border-bottom:1px solid #222; font-size:10px; flex-direction: column; gap: 8px;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span>JOINING METHOD:</span>
-                <button id="method-toggle" style="background:${config.green}; color:#000; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-weight:bold;">${currentMethod}</button>
+                <span>METHOD:</span>
+                <button id="method-toggle" style="background:${config.green}; color:#000; border:none; padding:3px 8px; border-radius:4px; cursor:pointer; font-weight:bold;">${currentMethod}</button>
             </div>
-            <div style="display:flex; flex-direction:column; gap:5px;">
+            <div style="display:flex; flex-direction:column; gap:4px;">
                 <div style="display:flex; justify-content:space-between;">
-                    <span>UI SIZE:</span>
+                    <span>UI SCALE:</span>
                     <span id="scale-val">${Math.round(currentScale * 100)}%</span>
                 </div>
                 <input type="range" id="ui-scale-slider" min="0.5" max="1.5" step="0.05" value="${currentScale}" style="width:100%; cursor:pointer; accent-color:${config.green};">
             </div>
         </div>
 
-        <div id="flj-filter-bar" style="padding: 8px; background: #080808; border-bottom: 1px solid #222; display: flex; gap: 5px; flex-wrap: wrap; font-size: 10px;">
-            <span style="width: 100%; margin-bottom: 4px; color: #666; font-weight:bold;">FILTER BY:</span>
-            <button class="sort-btn active" data-sort="recent" style="background:${config.green}; color:#000; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold;">Recently</button>
-            <button class="sort-btn" data-sort="stacked" style="background:#222; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;">Stacked</button>
-            <button class="sort-btn" data-sort="mid" style="background:#222; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;">Mid</button>
-            <button class="sort-btn" data-sort="shit" style="background:#222; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;">Shit</button>
+        <div id="flj-filter-bar" style="padding: 6px; background: #080808; border-bottom: 1px solid #222; display: flex; gap: 4px; flex-wrap: wrap;">
+            <button class="sort-btn active" data-sort="recent" style="background:${config.green}; color:#000; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:9px; font-weight:bold;">Recent</button>
+            <button class="sort-btn" data-sort="stacked" style="background:#222; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:9px;">Stacked</button>
+            <button class="sort-btn" data-sort="mid" style="background:#222; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:9px;">Mid</button>
+            <button class="sort-btn" data-sort="shit" style="background:#222; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:9px;">Shit</button>
         </div>
 
-        <div id="flj-list" style="padding: 10px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px;">
-            <div id="flj-empty" style="color: #444; text-align: center; margin-top: 150px; font-size: 11px;">Waiting for links...</div>
+        <div id="flj-list" style="padding: 8px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px;">
+            <div id="flj-empty" style="color: #444; text-align: center; margin-top: 140px; font-size: 10px;">Searching for links...</div>
         </div>
 
-        <div style="padding: 5px; text-align: center; background: #050505; border-top: 1px solid #222; font-size: 10px; color: #444; letter-spacing: 1px;">
+        <div style="padding: 4px; text-align: center; background: #050505; border-top: 1px solid #222; font-size: 9px; color: #444; letter-spacing: 1px;">
             MADE BY <span style="color: ${config.green}; font-weight: bold;">ZAYD</span>
         </div>
     `;
     document.body.appendChild(ui);
 
     const list = document.getElementById("flj-list");
+
+    document.getElementById("join-recent").onclick = () => {
+        const firstBtn = list.querySelector('.j-btn:not(:disabled)');
+        if (firstBtn) firstBtn.click();
+    };
+
+    document.getElementById("join-random").onclick = () => {
+        const availableBtns = Array.from(list.querySelectorAll('.j-btn:not(:disabled)'));
+        if (availableBtns.length > 0) {
+            availableBtns[Math.floor(Math.random() * availableBtns.length)].click();
+        }
+    };
+
     const methodBtn = document.getElementById("method-toggle");
     const settingsPanel = document.getElementById("flj-settings-panel");
     const scaleSlider = document.getElementById("ui-scale-slider");
@@ -85,8 +102,8 @@
     });
 
     document.getElementById("flj-refresh-btn").onclick = () => {
-        list.innerHTML = '<div id="flj-empty" style="color: #444; text-align: center; margin-top: 150px; font-size: 11px;">Refreshing...</div>';
-        seenCodes.clear(); hiddenUsers.clear(); cardCounter = 0;
+        list.innerHTML = '<div id="flj-empty" style="color: #444; text-align: center; margin-top: 140px; font-size: 10px;">Refreshing...</div>';
+        seenCodes.clear(); joinedCodes.clear(); hiddenUsers.clear(); cardCounter = 0;
     };
 
     methodBtn.onclick = () => {
@@ -98,7 +115,7 @@
         } else {
             list.style.display = "flex"; document.getElementById("flj-filter-bar").style.display = "flex";
         }
-        list.innerHTML = '<div id="flj-empty" style="color: #444; text-align: center; margin-top: 150px; font-size: 11px;">Refreshing...</div>';
+        list.innerHTML = '';
         seenCodes.clear(); cardCounter = 0;
     };
 
@@ -120,34 +137,35 @@
         const card = document.createElement("div");
         card.className = "link-card";
         card.dataset.author = name;
+        card.dataset.code = code;
         
         if (currentMethod === 'Advanced') {
-            card.style.cssText = `background: ${config.card}; border: 1px solid #1a1a1a; padding: 12px; border-radius: 10px; border-left: 4px solid ${config.green}; transition: border-left 0.3s;`;
+            card.style.cssText = `background: ${config.card}; border: 1px solid #1a1a1a; padding: 10px; border-radius: 8px; border-left: 3px solid ${config.green}; transition: border-left 0.3s;`;
             card.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                    <div style="display:flex; flex-direction:column; gap:4px;">
-                        <span style="font-size: 13px; font-weight: bold;">👤 ${name}</span>
-                        <button class="hide-btn" style="background:#333; color:#ccc; border:none; padding:2px 6px; border-radius:4px; cursor:pointer; font-size:9px; width:fit-content;">HIDE</button>
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px;">
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-size: 11px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">👤 ${name}</span>
+                        <button class="hide-btn" style="background:#333; color:#ccc; border:none; padding:1px 4px; border-radius:3px; cursor:pointer; font-size:8px; width:fit-content;">HIDE</button>
                     </div>
-                    <div style="background: ${config.gray}; padding: 4px 6px; border-radius: 6px; display: flex; flex-direction: column; gap: 3px;">
-                        <label style="font-size: 9px; color: ${config.purple}; cursor: pointer;"><input type="radio" name="rate-${code}" value="stacked"> Stacked</label>
-                        <label style="font-size: 9px; color: ${config.yellow}; cursor: pointer;"><input type="radio" name="rate-${code}" value="mid"> Mid</label>
-                        <label style="font-size: 9px; color: ${config.red}; cursor: pointer;"><input type="radio" name="rate-${code}" value="shit"> Shit</label>
+                    <div style="background: ${config.gray}; padding: 3px 5px; border-radius: 5px; display: flex; flex-direction: column; gap: 2px;">
+                        <label style="font-size: 8px; color: ${config.purple}; cursor: pointer;"><input type="radio" name="rate-${code}" value="stacked"> Stack</label>
+                        <label style="font-size: 8px; color: ${config.yellow}; cursor: pointer;"><input type="radio" name="rate-${code}" value="mid"> Mid</label>
+                        <label style="font-size: 8px; color: ${config.red}; cursor: pointer;"><input type="radio" name="rate-${code}" value="shit"> Shit</label>
                     </div>
                 </div>
-                <div style="display: flex; gap: 5px;">
-                    <button class="j-btn" style="flex: 1; background: ${config.green}; color: #000; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px;">JOIN SERVER</button>
-                    <button class="rj-btn" style="display: none; flex: 1; background: ${config.blue}; color: #fff; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px;">REJOIN</button>
+                <div style="display: flex; gap: 4px;">
+                    <button class="j-btn" style="flex: 1.5; background: ${config.green}; color: #000; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 10px;">JOIN</button>
+                    <button class="rj-btn" style="display: none; flex: 1; background: ${config.blue}; color: #fff; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 9px;">REJOIN</button>
                 </div>
             `;
             card.querySelector('.hide-btn').onclick = () => { hiddenUsers.add(name); document.querySelectorAll(`.link-card[data-author="${name}"]`).forEach(el => el.remove()); };
             card.querySelectorAll('input').forEach(r => r.onchange = () => applyFilter());
         } else {
-            card.style.cssText = `display: flex; flex-direction: column; align-items: center; gap: 4px;`;
-            card.innerHTML = `<span style="font-size: 10px; color:${config.green}; font-weight:bold;">${cardCounter}</span>
-                <div style="background:${config.card}; border:1px solid #222; width:60px; height:60px; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; border-left: 0px solid ${config.green}; transition: border-left 0.3s;">
-                    <button class="j-btn" style="width:100%; height:100%; background:${config.green}; color:#000; border:none; cursor:pointer; font-weight:bold; font-size:10px;">JOIN</button>
-                    <button class="rj-btn" style="display:none; width:100%; height:50%; background:${config.blue}; color:#fff; border:none; cursor:pointer; font-weight:bold; font-size:9px;">REJOIN</button>
+            card.style.cssText = `display: flex; flex-direction: column; align-items: center; gap: 3px;`;
+            card.innerHTML = `<span style="font-size: 9px; color:${config.green}; font-weight:bold;">${cardCounter}</span>
+                <div class="simple-inner" style="background:${config.card}; border:1px solid #222; width:55px; height:55px; border-radius:6px; overflow:hidden; display:flex; flex-direction:column; transition: 0.3s;">
+                    <button class="j-btn" style="width:100%; height:100%; background:${config.green}; color:#000; border:none; cursor:pointer; font-weight:bold; font-size:9px;">JOIN</button>
+                    <button class="rj-btn" style="display:none; width:100%; height:50%; background:${config.blue}; color:#fff; border:none; cursor:pointer; font-weight:bold; font-size:8px;">REJOIN</button>
                 </div>`;
         }
 
@@ -156,6 +174,7 @@
 
         btn.onclick = function() {
             window.open(url, '_blank');
+            joinedCodes.add(code);
             this.style.background = config.red; 
             this.style.color = '#fff'; 
             this.innerText = currentMethod === 'Advanced' ? "JOINED" : "✔";
@@ -165,7 +184,7 @@
             if (currentMethod === 'Advanced') {
                 card.style.borderLeftColor = config.red;
             } else {
-                card.querySelector('div').style.borderLeft = `3px solid ${config.red}`;
+                card.querySelector('.simple-inner').style.borderLeft = `3px solid ${config.red}`;
             }
 
             rjBtn.style.display = "block"; 
@@ -204,7 +223,5 @@
 })();
 
 
-
-
-// version 2.4
+// version 2.6
 // made by zayd
