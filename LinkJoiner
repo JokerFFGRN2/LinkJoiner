@@ -122,7 +122,7 @@
         card.dataset.author = name;
         
         if (currentMethod === 1) {
-            card.style.cssText = `background: ${config.card}; border: 1px solid #1a1a1a; padding: 12px; border-radius: 10px; border-left: 4px solid ${config.green};`;
+            card.style.cssText = `background: ${config.card}; border: 1px solid #1a1a1a; padding: 12px; border-radius: 10px; border-left: 4px solid ${config.green}; transition: border-left 0.3s;`;
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
                     <div style="display:flex; flex-direction:column; gap:4px;">
@@ -145,7 +145,7 @@
         } else {
             card.style.cssText = `display: flex; flex-direction: column; align-items: center; gap: 4px;`;
             card.innerHTML = `<span style="font-size: 10px; color:${config.green}; font-weight:bold;">${cardCounter}</span>
-                <div style="background:${config.card}; border:1px solid #222; width:60px; height:60px; border-radius:8px; overflow:hidden; display:flex; flex-direction:column;">
+                <div style="background:${config.card}; border:1px solid #222; width:60px; height:60px; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; border-left: 0px solid ${config.green}; transition: border-left 0.3s;">
                     <button class="j-btn" style="width:100%; height:100%; background:${config.green}; color:#000; border:none; cursor:pointer; font-weight:bold; font-size:10px;">JOIN</button>
                     <button class="rj-btn" style="display:none; width:100%; height:50%; background:${config.blue}; color:#fff; border:none; cursor:pointer; font-weight:bold; font-size:9px;">REJOIN</button>
                 </div>`;
@@ -161,6 +161,14 @@
             this.innerText = currentMethod === 1 ? "JOINED" : "✔";
             this.disabled = true; 
             this.style.cursor = "default";
+            
+            // تغيير لون الشريط الجانبي للأحمر
+            if (currentMethod === 1) {
+                card.style.borderLeftColor = config.red;
+            } else {
+                card.querySelector('div').style.borderLeft = `3px solid ${config.red}`;
+            }
+
             rjBtn.style.display = "block"; 
             if(currentMethod === 2) this.style.height = "50%";
         };
@@ -195,8 +203,3 @@
     document.onmousemove = (e) => { if(d) { ui.style.right = (ox - e.clientX) + 'px'; ui.style.top = (e.clientY + oy) + 'px'; ui.style.left = 'auto'; } };
     document.onmouseup = () => d = false;
 })();
-
-
-
-// version 2.2
-// made by zayd
