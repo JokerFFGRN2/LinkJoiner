@@ -159,9 +159,9 @@
             this.style.background = config.red; 
             this.style.color = '#fff'; 
             this.innerText = currentMethod === 1 ? "JOINED" : "✔";
-            this.disabled = true; // تعطيل الزر تماماً
+            this.disabled = true; 
             this.style.cursor = "default";
-            rjBtn.style.display = "block"; // إظهار زر Rejoin
+            rjBtn.style.display = "block"; 
             if(currentMethod === 2) this.style.height = "50%";
         };
 
@@ -197,5 +197,6 @@
 })();
 
 
-// version 2.1
+
+// version 2.2
 // made by zayd
