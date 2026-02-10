@@ -1,221 +1,292 @@
 (function() {
     'use strict';
 
-    const config = { bg: '#000', card: '#111', green: '#2ed573', red: '#ff4757', blue: '#3498db', text: '#fff', yellow: '#f1c40f', purple: '#9b59b6', gray: '#222' };
+    const config = { bg: '#000', card: '#111', green: '#2ed573', red: '#ff4757', blue: '#3498db', yellow: '#f1c40f', purple: '#9b59b6', gray: '#222' };
     let seenCodes = new Set();
-    let joinedCodes = new Set();
+    let allLinks = []; 
+    let lastRecentIndex = -1; 
     let hiddenUsers = new Set(); 
     let currentFilter = 'recent';
-    let currentMethod = 'Advanced';
-    let cardCounter = 0;
+    let isMinimized = false;
     let currentScale = localStorage.getItem('flj_scale') || 1;
+    let skipRating = localStorage.getItem('flj_skip_rating') === 'true';
 
-    const old = document.getElementById("flj-v11");
+    const old = document.getElementById("flj-v-final");
     if (old) old.remove();
 
     const ui = document.createElement("div");
-    ui.id = "flj-v11";
-    ui.style.cssText = `position: fixed; top: 20px; right: 20px; width: 300px; height: 480px; background: ${config.bg}; border: 1px solid #222; z-index: 1000000; font-family: sans-serif; border-radius: 10px; display: flex; flex-direction: column; box-shadow: 0 0 20px #000; overflow: hidden; color: white; transform: scale(${currentScale}); transform-origin: top right;`;
+    ui.id = "flj-v-final";
+    ui.style.cssText = `position: fixed; top: 20px; right: 20px; width: 280px; height: 500px; background: ${config.bg}; border: 1px solid #222; z-index: 1000000; font-family: sans-serif; border-radius: 10px; display: flex; flex-direction: column; box-shadow: 0 0 20px #000; color: white; transform: scale(${currentScale}); transform-origin: top right; transition: height 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); overflow: hidden;`;
     
     ui.innerHTML = `
-        <div id="flj-drag" style="background: #000; padding: 8px 12px; cursor: move; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center;">
-            <div style="display:flex; align-items:center; gap:6px;">
-                <button id="flj-settings-btn" style="background:none; border:none; color:#fff; cursor:pointer; font-size:12px; padding:0;">⚙️</button>
-                <button id="flj-refresh-btn" title="Refresh" style="background:none; border:none; color:#fff; cursor:pointer; font-size:14px; padding:0;">🔄</button>
-                <span style="font-weight: bold; font-size: 12px; user-select:none; margin-left:4px;">⚡ Link Joiner</span>
-            </div>
-            <div style="display:flex; align-items:center; gap:4px;">
-                <button id="join-recent" style="background:${config.green}; color:#000; border:none; padding:3px 6px; border-radius:4px; cursor:pointer; font-size:9px; font-weight:bold;">RECENT</button>
-                <button id="join-random" style="background:${config.purple}; color:#fff; border:none; padding:3px 6px; border-radius:4px; cursor:pointer; font-size:9px; font-weight:bold;">RANDOM</button>
-                <button id="flj-close" style="background:none; border:none; color:#fff; cursor:pointer; font-size:16px; margin-left:2px;">✕</button>
-            </div>
-        </div>
-
-        <div id="flj-settings-panel" style="display:none; background:#0a0a0a; padding:10px; border-bottom:1px solid #222; font-size:10px; flex-direction: column; gap: 8px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span>METHOD:</span>
-                <button id="method-toggle" style="background:${config.green}; color:#000; border:none; padding:3px 8px; border-radius:4px; cursor:pointer; font-weight:bold;">${currentMethod}</button>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:4px;">
-                <div style="display:flex; justify-content:space-between;">
-                    <span>UI SCALE:</span>
-                    <span id="scale-val">${Math.round(currentScale * 100)}%</span>
+        <style>
+            .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
+            .switch input { opacity: 0; width: 0; height: 0; }
+            .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
+            .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+            input:checked + .slider { background-color: ${config.blue}; }
+            input:checked + .slider:before { transform: translateX(16px); }
+            #flj-list::-webkit-scrollbar { width: 4px; }
+            #flj-list::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+            .btn-click-effect:active { transform: scale(0.95); opacity: 0.8; }
+            
+            /* ستايل سهم الإخفاء */
+            #toggle-sorts-btn {
+                background: none; border: none; color: #555; cursor: pointer;
+                font-size: 8px; padding: 2px; width: 100%; display: flex;
+                justify-content: center; align-items: center; transition: 0.2s;
+                border-bottom: 1px solid #1a1a1a;
+            }
+            #toggle-sorts-btn:hover { color: #fff; background: #111; }
+        </style>
+        <div id="flj-header" style="display: flex; flex-direction: column; border-bottom: 1px solid #222; flex-shrink: 0;">
+            <div id="flj-drag" style="padding: 10px 12px 5px 12px; cursor: move; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: bold; font-size: 13px; user-select:none; letter-spacing: 0.5px;">⚡ Link Joiner</span>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button id="flj-minimize" style="background:none; border:none; color:#666; cursor:pointer; font-size:12px;">▲</button>
+                    <button id="flj-close" style="background:none; border:none; color:#fff; cursor:pointer; font-size:16px;">✕</button>
                 </div>
-                <input type="range" id="ui-scale-slider" min="0.5" max="1.5" step="0.05" value="${currentScale}" style="width:100%; cursor:pointer; accent-color:${config.green};">
+            </div>
+            <div id="flj-action-bar" style="padding: 5px 12px 10px 12px; display: flex; gap: 6px; align-items: center;">
+                <button id="flj-settings-btn" class="btn-click-effect" style="background:#222; border:none; color:#fff; cursor:pointer; width:28px; height:28px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:14px;">⚙️</button>
+                <button id="flj-refresh-btn" class="btn-click-effect" style="background:#222; border:none; color:#fff; cursor:pointer; width:28px; height:28px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:14px;">🔄</button>
+                <div style="flex:1; display:flex; gap:4px;">
+                    <button id="join-recent" class="btn-click-effect" style="flex:1; background:${config.green}; color:#000; border:none; padding:6px; border-radius:4px; cursor:pointer; font-size:10px; font-weight:bold;">RECENT</button>
+                    <button id="join-random" class="btn-click-effect" style="flex:1; background:${config.purple}; color:#fff; border:none; padding:6px; border-radius:4px; cursor:pointer; font-size:10px; font-weight:bold;">RANDOM</button>
+                </div>
+            </div>
+            <div id="flj-settings-panel" style="display:none; background:#0d0d0d; padding:12px; border-top:1px solid #222; font-size:10px; flex-direction: column; gap: 12px;">
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                    <div style="display:flex; justify-content:space-between; color:#aaa;">
+                        <span>UI SCALE</span>
+                        <span id="scale-val">${Math.round(currentScale * 100)}%</span>
+                    </div>
+                    <input type="range" id="ui-scale-slider" min="0.5" max="1.5" step="0.05" value="${currentScale}" style="width:100%; cursor:pointer; accent-color:${config.green};">
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="color:#eee; font-weight:bold;">SKIP RATING</span>
+                    <label class="switch">
+                        <input type="checkbox" id="skip-rating-toggle" ${skipRating ? 'checked' : ''}>
+                        <span class="slider"></span>
+                    </label>
+                </div>
             </div>
         </div>
-
-        <div id="flj-filter-bar" style="padding: 6px; background: #080808; border-bottom: 1px solid #222; display: flex; gap: 4px; flex-wrap: wrap;">
-            <button class="sort-btn active" data-sort="recent" style="background:${config.green}; color:#000; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:9px; font-weight:bold;">Recent</button>
-            <button class="sort-btn" data-sort="stacked" style="background:#222; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:9px;">Stacked</button>
-            <button class="sort-btn" data-sort="mid" style="background:#222; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:9px;">Mid</button>
-            <button class="sort-btn" data-sort="shit" style="background:#222; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:9px;">Shit</button>
-        </div>
-
-        <div id="flj-list" style="padding: 8px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px;">
-            <div id="flj-empty" style="color: #444; text-align: center; margin-top: 140px; font-size: 10px;">Searching for links...</div>
-        </div>
-
-        <div style="padding: 4px; text-align: center; background: #050505; border-top: 1px solid #222; font-size: 9px; color: #444; letter-spacing: 1px;">
-            MADE BY <span style="color: ${config.green}; font-weight: bold;">ZAYD</span>
+        <div id="flj-main-content" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+            <div id="flj-sorts-container">
+                <div id="flj-filter-bar" style="padding: 6px; background: #080808; border-bottom: 1px solid #222; display: flex; gap: 4px; justify-content: center; flex-shrink: 0;">
+                    <button class="sort-btn active" data-sort="recent" style="background:${config.green}; color:#000; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:9px; font-weight:bold;">Recent</button>
+                    <button class="sort-btn" data-sort="stacked" style="background:#222; color:${config.blue}; border:1px solid ${config.blue}; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:9px; font-weight:bold;">Stacked</button>
+                    <button class="sort-btn" data-sort="mid" style="background:#222; color:${config.yellow}; border:1px solid ${config.yellow}; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:9px; font-weight:bold;">Mid</button>
+                    <button class="sort-btn" data-sort="shit" style="background:#222; color:${config.red}; border:1px solid ${config.red}; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:9px; font-weight:bold;">Shit</button>
+                </div>
+            </div>
+            <button id="toggle-sorts-btn">▼</button>
+            <div id="flj-list" style="padding: 8px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; background: #050505;">
+                <div id="flj-empty" style="color: #444; text-align: center; margin-top: 140px; font-size: 10px;">Scanning for links...</div>
+            </div>
         </div>
     `;
     document.body.appendChild(ui);
 
+    // وظيفة سهم الإخفاء
+    let sortsVisible = true;
+    document.getElementById("toggle-sorts-btn").onclick = () => {
+        sortsVisible = !sortsVisible;
+        document.getElementById("flj-sorts-container").style.display = sortsVisible ? "block" : "none";
+        document.getElementById("toggle-sorts-btn").innerText = sortsVisible ? "▼" : "▲";
+    };
+
+    function formatTime(ms) {
+        const s = Math.floor(ms / 1000);
+        const m = Math.floor(s / 60);
+        const h = Math.floor(m / 60);
+        const d = Math.floor(h / 24);
+        if (d > 0) return `${d}d ago`;
+        if (h > 0) return `${h}h ago`;
+        if (m > 0) return `${m}m ago`;
+        return `${s}s ago`;
+    }
+
     const list = document.getElementById("flj-list");
 
     document.getElementById("join-recent").onclick = () => {
-        const firstBtn = list.querySelector('.j-btn:not(:disabled)');
-        if (firstBtn) firstBtn.click();
+        if (allLinks.length === 0) return;
+        lastRecentIndex++;
+        if (lastRecentIndex >= allLinks.length) lastRecentIndex = 0;
+        const target = allLinks[lastRecentIndex];
+        window.open(target.url, '_blank');
+        const cardBtn = document.querySelector(`[data-code="${target.code}"] .j-btn`);
+        if (cardBtn) cardBtn.click();
     };
 
     document.getElementById("join-random").onclick = () => {
-        const availableBtns = Array.from(list.querySelectorAll('.j-btn:not(:disabled)'));
-        if (availableBtns.length > 0) {
-            availableBtns[Math.floor(Math.random() * availableBtns.length)].click();
-        }
+        if (allLinks.length === 0) return;
+        const random = allLinks[Math.floor(Math.random() * allLinks.length)];
+        window.open(random.url, '_blank');
     };
 
-    const methodBtn = document.getElementById("method-toggle");
-    const settingsPanel = document.getElementById("flj-settings-panel");
-    const scaleSlider = document.getElementById("ui-scale-slider");
-    const scaleValText = document.getElementById("scale-val");
-
-    scaleSlider.oninput = (e) => {
+    document.getElementById("ui-scale-slider").oninput = (e) => {
         let val = e.target.value;
         ui.style.transform = `scale(${val})`;
-        scaleValText.innerText = `${Math.round(val * 100)}%`;
+        document.getElementById("scale-val").innerText = `${Math.round(val * 100)}%`;
         localStorage.setItem('flj_scale', val);
     };
 
-    document.getElementById("flj-settings-btn").onclick = () => {
-        settingsPanel.style.display = settingsPanel.style.display === "none" ? "flex" : "none";
+    document.getElementById("skip-rating-toggle").onchange = (e) => {
+        skipRating = e.target.checked;
+        localStorage.setItem('flj_skip_rating', skipRating);
     };
+
+    document.getElementById("flj-settings-btn").onclick = () => {
+        const p = document.getElementById("flj-settings-panel");
+        p.style.display = p.style.display === "none" ? "flex" : "none";
+    };
+
+    document.getElementById("flj-minimize").onclick = () => {
+        isMinimized = !isMinimized;
+        ui.style.height = isMinimized ? "40px" : "500px";
+        document.getElementById("flj-minimize").innerText = isMinimized ? "▼" : "▲";
+    };
+
+    function applyFilter() {
+        document.querySelectorAll('.link-card').forEach(card => {
+            if (currentFilter === 'recent') card.style.display = 'block';
+            else card.style.display = card.dataset.rating === currentFilter ? 'block' : 'none';
+        });
+    }
 
     ui.querySelectorAll('.sort-btn').forEach(btn => {
         btn.onclick = () => {
-            ui.querySelectorAll('.sort-btn').forEach(b => { b.style.background = "#222"; b.style.color = "#fff"; });
-            btn.style.background = config.green; btn.style.color = "#000";
-            currentFilter = btn.dataset.sort;
+            const type = btn.dataset.sort;
+            ui.querySelectorAll('.sort-btn').forEach(b => { 
+                b.style.background = "#222"; 
+                b.style.color = b.dataset.sort === 'stacked' ? config.blue : (b.dataset.sort === 'mid' ? config.yellow : (b.dataset.sort === 'shit' ? config.red : '#fff'));
+            });
+            if(type === 'recent') btn.style.background = config.green;
+            else if(type === 'stacked') btn.style.background = config.blue;
+            else if(type === 'mid') btn.style.background = config.yellow;
+            else if(type === 'shit') btn.style.background = config.red;
+            btn.style.color = (type === 'shit' || type === 'recent' || type === 'stacked') ? "#fff" : "#000";
+            currentFilter = type;
             applyFilter();
         };
     });
 
-    document.getElementById("flj-refresh-btn").onclick = () => {
-        list.innerHTML = '<div id="flj-empty" style="color: #444; text-align: center; margin-top: 140px; font-size: 10px;">Refreshing...</div>';
-        seenCodes.clear(); joinedCodes.clear(); hiddenUsers.clear(); cardCounter = 0;
-    };
-
-    methodBtn.onclick = () => {
-        currentMethod = currentMethod === 'Advanced' ? 'Simple' : 'Advanced';
-        methodBtn.innerText = currentMethod;
-        if (currentMethod === 'Simple') {
-            list.style.display = "grid"; list.style.gridTemplateColumns = "repeat(4, 1fr)";
-            document.getElementById("flj-filter-bar").style.display = "none";
-        } else {
-            list.style.display = "flex"; document.getElementById("flj-filter-bar").style.display = "flex";
-        }
-        list.innerHTML = '';
-        seenCodes.clear(); cardCounter = 0;
-    };
-
-    function applyFilter() {
-        if (currentMethod === 'Simple') return;
-        document.querySelectorAll('.link-card').forEach(card => {
-            if (currentFilter === 'recent') { card.style.display = 'block'; } 
-            else {
-                const radio = card.querySelector(`input[value="${currentFilter}"]:checked`);
-                card.style.display = radio ? 'block' : 'none';
-            }
-        });
-    }
-
     function createCard(code, name, url) {
         if (seenCodes.has(code) || hiddenUsers.has(name)) return;
         seenCodes.add(code);
-        cardCounter++;
+        allLinks.unshift({code, url});
+        lastRecentIndex = -1;
+
+        let startTime = Date.now();
+        let status = "Posted";
+        
         const card = document.createElement("div");
         card.className = "link-card";
-        card.dataset.author = name;
+        card.dataset.rating = "none";
         card.dataset.code = code;
+        card.style.cssText = `background: ${config.card}; border: 1px solid #1a1a1a; padding: 12px; border-radius: 8px; border-left: 3px solid #444; margin-bottom: 4px; flex-shrink: 0;`;
         
-        if (currentMethod === 'Advanced') {
-            card.style.cssText = `background: ${config.card}; border: 1px solid #1a1a1a; padding: 10px; border-radius: 8px; border-left: 3px solid ${config.green}; transition: border-left 0.3s;`;
-            card.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px;">
-                    <div style="display:flex; flex-direction:column; gap:2px;">
-                        <span style="font-size: 11px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">👤 ${name}</span>
-                        <button class="hide-btn" style="background:#333; color:#ccc; border:none; padding:1px 4px; border-radius:3px; cursor:pointer; font-size:8px; width:fit-content;">HIDE</button>
-                    </div>
-                    <div style="background: ${config.gray}; padding: 3px 5px; border-radius: 5px; display: flex; flex-direction: column; gap: 2px;">
-                        <label style="font-size: 8px; color: ${config.purple}; cursor: pointer;"><input type="radio" name="rate-${code}" value="stacked"> Stack</label>
-                        <label style="font-size: 8px; color: ${config.yellow}; cursor: pointer;"><input type="radio" name="rate-${code}" value="mid"> Mid</label>
-                        <label style="font-size: 8px; color: ${config.red}; cursor: pointer;"><input type="radio" name="rate-${code}" value="shit"> Shit</label>
-                    </div>
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                    <span style="font-size: 11px; font-weight: bold; color: #ccc;">👤 ${name}</span>
+                    <span class="post-time" style="font-size: 8px; color: ${config.green};">Posted 0s ago</span>
                 </div>
-                <div style="display: flex; gap: 4px;">
-                    <button class="j-btn" style="flex: 1.5; background: ${config.green}; color: #000; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 10px;">JOIN</button>
-                    <button class="rj-btn" style="display: none; flex: 1; background: ${config.blue}; color: #fff; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 9px;">REJOIN</button>
-                </div>
-            `;
-            card.querySelector('.hide-btn').onclick = () => { hiddenUsers.add(name); document.querySelectorAll(`.link-card[data-author="${name}"]`).forEach(el => el.remove()); };
-            card.querySelectorAll('input').forEach(r => r.onchange = () => applyFilter());
-        } else {
-            card.style.cssText = `display: flex; flex-direction: column; align-items: center; gap: 3px;`;
-            card.innerHTML = `<span style="font-size: 9px; color:${config.green}; font-weight:bold;">${cardCounter}</span>
-                <div class="simple-inner" style="background:${config.card}; border:1px solid #222; width:55px; height:55px; border-radius:6px; overflow:hidden; display:flex; flex-direction:column; transition: 0.3s;">
-                    <button class="j-btn" style="width:100%; height:100%; background:${config.green}; color:#000; border:none; cursor:pointer; font-weight:bold; font-size:9px;">JOIN</button>
-                    <button class="rj-btn" style="display:none; width:100%; height:50%; background:${config.blue}; color:#fff; border:none; cursor:pointer; font-weight:bold; font-size:8px;">REJOIN</button>
-                </div>`;
-        }
+                <button class="hide-btn" style="background:none; border:none; color:#555; cursor:pointer; font-size:9px;">HIDE</button>
+            </div>
+            <div class="card-actions">
+                <button class="j-btn btn-click-effect" style="width: 100%; background: ${config.green}; color: #000; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px;">JOIN</button>
+            </div>
+            <div class="rating-box" style="display: none; flex-direction: column; gap: 6px;">
+                <button class="rate-btn btn-click-effect" data-val="stacked" style="background:${config.blue}; color:#fff; border:none; padding:12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:12px;">STACKED</button>
+                <button class="rate-btn btn-click-effect" data-val="mid" style="background:${config.yellow}; color:#000; border:none; padding:12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:12px;">MID</button>
+                <button class="rate-btn btn-click-effect" data-val="shit" style="background:${config.red}; color:#fff; border:none; padding:12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:12px;">SHIT</button>
+            </div>
+        `;
 
-        const btn = card.querySelector('.j-btn');
-        const rjBtn = card.querySelector('.rj-btn');
+        const timeEl = card.querySelector('.post-time');
+        const timer = setInterval(() => {
+            const diff = Date.now() - startTime;
+            timeEl.innerText = `${status} ${formatTime(diff)}`;
+        }, 1000);
 
-        btn.onclick = function() {
-            window.open(url, '_blank');
-            joinedCodes.add(code);
-            this.style.background = config.red; 
-            this.style.color = '#fff'; 
-            this.innerText = currentMethod === 'Advanced' ? "JOINED" : "✔";
-            this.disabled = true; 
-            this.style.cursor = "default";
-            
-            if (currentMethod === 'Advanced') {
-                card.style.borderLeftColor = config.red;
-            } else {
-                card.querySelector('.simple-inner').style.borderLeft = `3px solid ${config.red}`;
+        const jBtn = card.querySelector('.j-btn');
+        const ratingBox = card.querySelector('.rating-box');
+        const actions = card.querySelector('.card-actions');
+
+        jBtn.onclick = () => {
+            if (status !== "Joined") {
+                window.open(url, '_blank');
+                status = "Joined";
+                startTime = Date.now();
+                timeEl.style.color = config.blue;
+                timeEl.innerText = "Joined 0s ago";
+                if (skipRating) {
+                    actions.innerHTML = `<button class="rj-btn btn-click-effect" style="width:100%; background:#222; color:#fff; border:1px solid #444; padding:8px; border-radius:6px; cursor:pointer; font-size:10px; font-weight:bold;">REJOIN</button>`;
+                    actions.querySelector('.rj-btn').onclick = () => window.open(url, '_blank');
+                } else {
+                    actions.style.display = "none";
+                    ratingBox.style.display = "flex";
+                }
             }
-
-            rjBtn.style.display = "block"; 
-            if(currentMethod === 'Simple') this.style.height = "50%";
         };
 
-        rjBtn.onclick = () => window.open(url, '_blank');
+        card.querySelectorAll('.rate-btn').forEach(btn => {
+            btn.onclick = () => {
+                const val = btn.dataset.val;
+                card.dataset.rating = val;
+                ratingBox.style.display = "none";
+                const color = val === 'stacked' ? config.blue : (val === 'mid' ? config.yellow : config.red);
+                card.style.borderLeftColor = color;
+                actions.innerHTML = `<button class="rj-btn btn-click-effect" style="width:100%; background:#222; color:${color}; border:1px solid ${color}; padding:8px; border-radius:6px; cursor:pointer; font-size:10px; font-weight:bold;">REJOIN (${val.toUpperCase()})</button>`;
+                actions.querySelector('.rj-btn').onclick = () => window.open(url, '_blank');
+                actions.style.display = "block";
+                applyFilter();
+            };
+        });
 
-        document.getElementById("flj-empty")?.remove();
+        card.querySelector('.hide-btn').onclick = () => { 
+            clearInterval(timer); 
+            hiddenUsers.add(name); 
+            allLinks = allLinks.filter(l => l.code !== code);
+            card.remove(); 
+        };
+        
+        const emptyMsg = document.getElementById("flj-empty");
+        if (emptyMsg) emptyMsg.remove();
         list.prepend(card);
+        applyFilter();
     }
 
     const scan = setInterval(() => {
         const regex = /(?:code=|privateServerLinkCode=)([a-zA-Z0-9_-]+)/g;
-        const html = document.body.innerHTML;
-        let m;
-        while ((m = regex.exec(html)) !== null) {
-            const code = m[1];
-            if (!seenCodes.has(code)) {
-                let author = "User";
-                document.querySelectorAll(".forum-post-container, [class*='post'], .comment").forEach(el => {
-                    if (el.innerText.includes(code)) author = el.querySelector("[class*='name'], b, strong")?.innerText.trim() || author;
-                });
-                const isPrivate = html.includes('privateServerLinkCode=' + code);
-                const url = isPrivate ? `https://www.roblox.com/games/refer?privateServerLinkCode=${code}` : `https://www.roblox.com/share?code=${code}&type=Server`;
-                createCard(code, author.split('\n')[0], url);
+        const textNodes = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        while (node = textNodes.nextNode()) {
+            let m;
+            while ((m = regex.exec(node.nodeValue)) !== null) {
+                const code = m[1];
+                if (!seenCodes.has(code)) {
+                    let author = "User";
+                    let parent = node.parentElement;
+                    while(parent && parent !== document.body) {
+                        const nameEl = parent.querySelector("[class*='name'], [class*='user'], .username, b, strong");
+                        if(nameEl) { author = nameEl.innerText.split('\n')[0].trim(); break; }
+                        parent = parent.parentElement;
+                    }
+                    const isPrivate = node.nodeValue.includes('privateServerLinkCode=');
+                    const url = isPrivate ? `https://www.roblox.com/games/refer?privateServerLinkCode=${code}` : `https://www.roblox.com/share?code=${code}&type=Server`;
+                    createCard(code, author, url);
+                }
             }
         }
     }, 1000);
 
     document.getElementById("flj-close").onclick = () => { clearInterval(scan); ui.remove(); };
+    document.getElementById("flj-refresh-btn").onclick = () => { list.innerHTML = ''; seenCodes.clear(); allLinks = []; lastRecentIndex = -1; };
+    
     let d = false, ox, oy;
     document.getElementById("flj-drag").onmousedown = (e) => { if(e.target.tagName === "BUTTON" || e.target.tagName === "INPUT") return; d = true; ox = (window.innerWidth - ui.offsetLeft - ui.offsetWidth) + e.clientX; oy = ui.offsetTop - e.clientY; };
     document.onmousemove = (e) => { if(d) { ui.style.right = (ox - e.clientX) + 'px'; ui.style.top = (e.clientY + oy) + 'px'; ui.style.left = 'auto'; } };
@@ -223,5 +294,7 @@
 })();
 
 
-// version 2.6
+
+
+// version 3.3
 // made by zayd
