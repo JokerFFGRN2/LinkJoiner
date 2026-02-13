@@ -1,7 +1,6 @@
 (function() {
     'use strict';
 
-    // التعديل: الألوان صارت أسود وأزرق فقط مع الحفاظ على الثيم
     const config = { 
         bg: '#000', 
         card: '#0a0a0a', 
@@ -13,7 +12,7 @@
     
     let seenCodes = new Set();
     let allLinks = []; 
-    let joinedCodes = new Set(); // ميزة الـ Random الجديدة: تتبع السيرفرات المحقونة
+    let joinedCodes = new Set(); 
     let lastRecentIndex = -1; 
     let hiddenUsers = new Set(); 
     let currentFilter = 'recent';
@@ -133,16 +132,12 @@
         if (cardBtn) cardBtn.click();
     };
 
-    // تعديل الـ Random: لا يكرر السيرفرات اللي دخلتها
     document.getElementById("join-random").onclick = () => {
         let unjoined = allLinks.filter(l => !joinedCodes.has(l.code));
-        
-        // إذا خلصت كل السيرفرات، صفر الذاكرة وابدأ من جديد
         if (unjoined.length === 0 && allLinks.length > 0) {
             joinedCodes.clear();
             unjoined = allLinks;
         }
-
         if (unjoined.length > 0) {
             const random = unjoined[Math.floor(Math.random() * unjoined.length)];
             joinedCodes.add(random.code);
@@ -308,7 +303,3 @@
     document.onmousemove = (e) => { if(d) { ui.style.right = (ox - e.clientX) + 'px'; ui.style.top = (e.clientY + oy) + 'px'; ui.style.left = 'auto'; } };
     document.onmouseup = () => d = false;
 })();
-
-
-// version 3.4
-// made by zayd
