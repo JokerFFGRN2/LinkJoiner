@@ -29,31 +29,19 @@
     
     ui.innerHTML = `
         <style>
-            @keyframes slideIn {
-                from { opacity: 0; transform: translateX(20px); }
-                to { opacity: 1; transform: translateX(0); }
-            }
+            @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
             .link-card { animation: slideIn 0.3s ease-out; }
-            
             .switch { position: relative; display: inline-block; width: 34px; height: 18px; }
             .switch input { opacity: 0; width: 0; height: 0; }
             .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #222; transition: .4s; border-radius: 34px; }
             .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
             input:checked + .slider { background-color: ${config.blue}; }
             input:checked + .slider:before { transform: translateX(16px); }
-            
             #flj-list::-webkit-scrollbar { width: 4px; }
             #flj-list::-webkit-scrollbar-thumb { background: ${config.blue}; border-radius: 10px; }
-            
             .btn-click-effect:active { transform: scale(0.95); opacity: 0.8; }
             .blue-glow:hover { box-shadow: 0 0 10px ${config.blue}; }
-            
-            #toggle-sorts-btn {
-                background: none; border: none; color: #333; cursor: pointer;
-                font-size: 8px; padding: 2px; width: 100%; display: flex;
-                justify-content: center; align-items: center; transition: 0.2s;
-                border-bottom: 1px solid #111;
-            }
+            #toggle-sorts-btn { background: none; border: none; color: #333; cursor: pointer; font-size: 8px; padding: 2px; width: 100%; display: flex; justify-content: center; align-items: center; transition: 0.2s; border-bottom: 1px solid #111; }
             #toggle-sorts-btn:hover { color: ${config.blue}; background: #050505; }
         </style>
         <div id="flj-header" style="display: flex; flex-direction: column; border-bottom: 1px solid #111; flex-shrink: 0;">
@@ -122,14 +110,14 @@
 
     const list = document.getElementById("flj-list");
 
+    // --- التعديل هنا: حذفنا window.open المكرر ---
     document.getElementById("join-recent").onclick = () => {
         if (allLinks.length === 0) return;
         lastRecentIndex++;
         if (lastRecentIndex >= allLinks.length) lastRecentIndex = 0;
         const target = allLinks[lastRecentIndex];
-        window.open(target.url, '_blank');
         const cardBtn = document.querySelector(`[data-code="${target.code}"] .j-btn`);
-        if (cardBtn) cardBtn.click();
+        if (cardBtn) cardBtn.click(); // يفتح الرابط ويسجل الدخول بضغطة واحدة
     };
 
     document.getElementById("join-random").onclick = () => {
@@ -140,8 +128,6 @@
         }
         if (unjoined.length > 0) {
             const random = unjoined[Math.floor(Math.random() * unjoined.length)];
-            joinedCodes.add(random.code);
-            window.open(random.url, '_blank');
             const cardBtn = document.querySelector(`[data-code="${random.code}"] .j-btn`);
             if (cardBtn) cardBtn.click();
         }
