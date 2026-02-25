@@ -97,7 +97,7 @@
 
     const list = document.getElementById("flj-list");
 
-    // --- RECENT ذكي: يدخل أحدث رابط لم يُدخل بعد ---
+    // RECENT: Joins the latest unvisited link
     document.getElementById("join-recent").onclick = () => {
         const target = allLinks.find(l => !joinedCodes.has(l.code));
         if (target) {
