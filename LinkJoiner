@@ -1,3 +1,4 @@
+
 (function() {
     'use strict';
 
@@ -217,3 +218,10 @@
     document.onmousemove = (e) => { if(d) { ui.style.right = (ox - e.clientX) + 'px'; ui.style.top = (e.clientY + oy) + 'px'; ui.style.left = 'auto'; } };
     document.onmouseup = () => d = false;
 })();
+
+
+
+
+
+// feel free to modify it
+// fast forums joiner
